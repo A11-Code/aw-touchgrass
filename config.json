@@ -1,0 +1,11 @@
+{
+  "app_limits": {
+    "chrome": 120,
+    "Code": 120,
+    "Discord": 120,
+    "All applications": 200
+  },
+  "max_session_minutes": 500,
+  "audio_file": "assets/quack.wav",
+  "strikes": 3
+}

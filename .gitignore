@@ -1,0 +1,35 @@
+# Environments
+venv/
+.venv/
+env/
+.env
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyInstaller (Build/Packaging artifacts)
+build/
+dist/
+*.manifest
+*.spec
+
+# Caches and logs
+*.log
+pip-log.txt
+.pytest_cache/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Local Database & Lock files
+*.sqlite3
+.ratiobot.lock
+proofs/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
