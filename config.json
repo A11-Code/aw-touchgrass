@@ -7,5 +7,5 @@
   },
   "max_session_minutes": 500,
   "audio_file": "assets/quack.wav",
-  "strikes": 3
+  "strikes": 1
 }

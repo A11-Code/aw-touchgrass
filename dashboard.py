@@ -97,6 +97,11 @@ class RatioBotDashboard:
             "Maximum continuous session (minutes)",
             str(self.config.get("max_session_minutes", 240)),
         )
+        self.openrouter_key_entry = self._entry(
+            frame,
+            "OpenRouter API Key",
+            str(self.config.get("openrouter_key", "")),
+        )
 
         audio_row = tk.Frame(frame, bg="#121212")
         audio_row.pack(fill="x", pady=14)
@@ -353,6 +358,7 @@ class RatioBotDashboard:
             messagebox.showerror("Invalid session limit", "Enter a positive whole number.")
             return
         self.config["max_session_minutes"] = session_limit
+        self.config["openrouter_key"] = self.openrouter_key_entry.get().strip()
         self.config_path.write_text(json.dumps(self.config, indent=2) + "\n", encoding="utf-8")
         self.root.destroy()
 

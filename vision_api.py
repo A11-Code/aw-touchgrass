@@ -1,30 +1,19 @@
-"""Grass-proof metadata and OpenRouter vision verification."""
+"""Grass-proof creation date verification for RatioBot."""
 
 from __future__ import annotations
 
-import base64
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import json
 import logging
-import mimetypes
-import os
 from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
-from dotenv import load_dotenv
 from PIL import ExifTags, Image
-import requests
 
 LOGGER = logging.getLogger(__name__)
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-VISION_MODEL = "thinkingmachines/inkling-small:free"
-MAX_PROOF_AGE = timedelta(hours=3)
-
 PROOFS_DIR = Path(__file__).resolve().parent / "proofs"
-
-load_dotenv()
 
 
 @dataclass(frozen=True)
@@ -32,27 +21,6 @@ class VerificationResult:
     accepted: bool
     suspicious: bool
     reason: str
-
-
-def _get_openrouter_key() -> str:
-    """Read openrouter_key from config.json with env fallback."""
-    config_path = Path(__file__).resolve().parent / "config.json"
-    key = None
-    if config_path.exists():
-        try:
-            config = json.loads(config_path.read_text(encoding="utf-8"))
-            if isinstance(config, dict):
-                key = config.get("openrouter_key")
-        except (OSError, json.JSONDecodeError):
-            pass
-    if not key:
-        key = os.getenv("OPENROUTER_KEY") or os.getenv("OPENROUTER_API_KEY")
-    if not key:
-        raise RuntimeError(
-            "OpenRouter API key ('openrouter_key') is missing in config.json. "
-            "Please update your settings in the dashboard."
-        )
-    return str(key).strip()
 
 
 def _metadata_time(image: Image.Image) -> datetime | None:
@@ -103,67 +71,32 @@ def cleanup_old_proofs(retention_days: int = 30, proofs_dir: Path = PROOFS_DIR) 
     return removed_count
 
 
-def _vision_yes(image_path: Path) -> bool:
-    """Verify proof image using OpenRouter vision model."""
-    openrouter_key = _get_openrouter_key()
-    headers = {
-        "Authorization": f"Bearer {openrouter_key}",
-        "HTTP-Referer": "https://github.com/YourOrg/aw-touchgrass",
-        "X-Title": "RatioBot",
-    }
-    mime_type = mimetypes.guess_type(image_path.name)[0] or "image/jpeg"
-    base64_image = base64.b64encode(image_path.read_bytes()).decode("utf-8")
-
-    payload = {
-        "model": VISION_MODEL,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": "Does this image show the outdoors, nature, or grass? Reply ONLY with the word YES or NO.",
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:{mime_type};base64,{base64_image}"
-                        },
-                    },
-                ],
-            }
-        ],
-    }
+def verify_image(image_path: Path, preserve_proof: bool = True) -> VerificationResult:
+    """Verify whether an image was created/taken today."""
+    has_metadata = False
+    captured_at = None
 
     try:
-        response = requests.post(
-            OPENROUTER_URL,
-            headers=headers,
-            json=payload,
-            timeout=60,
+        with Image.open(image_path) as image:
+            captured_at = _metadata_time(image)
+            has_metadata = captured_at is not None
+    except Exception as exc:
+        LOGGER.warning("Unable to open image for EXIF inspection: %s", exc)
+
+    if captured_at is None:
+        try:
+            captured_at = datetime.fromtimestamp(image_path.stat().st_mtime)
+        except OSError as exc:
+            LOGGER.error("Failed to read file modification time: %s", exc)
+            return VerificationResult(False, False, "Unable to determine image creation date.")
+
+    today = datetime.now().date()
+    if captured_at.date() != today:
+        return VerificationResult(
+            False,
+            False,
+            f"The photo was taken on {captured_at.date()}, not today ({today}).",
         )
-        response.raise_for_status()
-        data = response.json()
-        content = data["choices"][0]["message"]["content"]
-        LOGGER.info("OpenRouter vision response: %r", content)
-        return str(content).strip().upper().startswith("YES")
-    except (requests.RequestException, KeyError, IndexError, ValueError) as exc:
-        LOGGER.error("OpenRouter API request failed: %s", exc)
-        return False
-
-
-def verify_image(image_path: Path, preserve_proof: bool = True) -> VerificationResult:
-    """Verify a proof image, preserving a copy in the proofs directory if configured."""
-    has_metadata = False
-    with Image.open(image_path) as image:
-        captured_at = _metadata_time(image)
-        has_metadata = captured_at is not None
-        if captured_at and datetime.now() - captured_at > MAX_PROOF_AGE:
-            return VerificationResult(False, False, "The photo is older than three hours.")
-
-    vision_says_yes = _vision_yes(image_path)
-    if not vision_says_yes:
-        return VerificationResult(False, False, "The image could not be verified as outdoors.")
 
     if preserve_proof:
         try:
@@ -174,7 +107,7 @@ def verify_image(image_path: Path, preserve_proof: bool = True) -> VerificationR
     return VerificationResult(
         True,
         not has_metadata,
-        "The proof was accepted.",
+        "The proof was accepted (created today).",
     )
 
 
