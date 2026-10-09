@@ -29,7 +29,12 @@ jobs:
         run: |
           python --version
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.txt pytest
+
+      - name: Run test suite
+        shell: pwsh
+        run: |
+          python -m pytest tests/ -v
 
       - name: Build executable with PyInstaller
         shell: pwsh
