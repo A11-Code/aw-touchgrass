@@ -24,7 +24,7 @@ A lightweight, distraction-shaming system tray companion for Windows that monito
 
 1. Make sure [ActivityWatch](https://activitywatch.net/) is running in the background.
 2. (Optional) Run [Ollama](https://ollama.com/) locally (`ollama run gemma2:2b`) for dynamic AI roasts.
-3. Run `dist/TouchGrassDuck.exe`:
+3. Run `dist/aw-touchgrass.exe`:
    - It will run in the background with an icon in your system tray.
    - Right-click the tray icon and select **"Change Stuff"** to adjust your preferences, or **"Quit"** to exit.
 
@@ -68,7 +68,7 @@ python.exe main.py --app chrome --hours 3
 python.exe main.py --app discord --minutes 90
 
 # Using the standalone executable:
-.\dist\TouchGrassDuck.exe reddit 6 hours
+.\dist\aw-touchgrass.exe reddit 6 hours
 ```
 
 ---
@@ -112,7 +112,7 @@ To package TouchGrass Duck into a single `.exe` file:
 
 The output will be created at:
 ```
-dist/TouchGrassDuck.exe
+dist/aw-touchgrass.exe
 ```
 
 ---
@@ -134,7 +134,7 @@ aw_touchgrass/
 ├── assets/
 │   └── quack.wav          # Quack sound effect
 ├── dist/
-│   └── TouchGrassDuck.exe # Standalone compiled executable
+│   └── aw-touchgrass.exe  # Standalone compiled executable
 ├── tests/
 │   └── test_core.py       # Unit test suite
 ├── config.json            # User configuration (thresholds, Ollama, audio)

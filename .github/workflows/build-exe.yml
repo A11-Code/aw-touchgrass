@@ -34,19 +34,19 @@ jobs:
       - name: Build executable with PyInstaller
         run: |
           pyinstaller ratiobot.spec --noconfirm
-          if (Test-Path "dist\TouchGrassDuck.exe") {
-            Move-Item -Path "dist\TouchGrassDuck.exe" -Destination "antigravity.exe" -Force
+          if (Test-Path "dist\aw-touchgrass.exe") {
+            Move-Item -Path "dist\aw-touchgrass.exe" -Destination "aw-touchgrass.exe" -Force
           }
 
       - name: Commit and push executable
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add antigravity.exe
-          $changes = git status --porcelain antigravity.exe
+          git add aw-touchgrass.exe
+          $changes = git status --porcelain aw-touchgrass.exe
           if ($changes) {
-            git commit -m "Automated build: update antigravity.exe [skip ci]"
+            git commit -m "Automated build: update aw-touchgrass.exe [skip ci]"
             git push
           } else {
-            Write-Host "No changes detected in antigravity.exe"
+            Write-Host "No changes detected in aw-touchgrass.exe"
           }
