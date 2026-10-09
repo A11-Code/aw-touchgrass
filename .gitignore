@@ -13,7 +13,6 @@ __pycache__/
 build/
 dist/
 *.manifest
-*.spec
 
 # Caches and logs
 *.log
