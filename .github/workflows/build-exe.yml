@@ -1,0 +1,52 @@
+name: Build Executable
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.exe'
+      - '.github/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build executable with PyInstaller
+        run: |
+          pyinstaller ratiobot.spec --noconfirm
+          if (Test-Path "dist\TouchGrassDuck.exe") {
+            Move-Item -Path "dist\TouchGrassDuck.exe" -Destination "antigravity.exe" -Force
+          }
+
+      - name: Commit and push executable
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add antigravity.exe
+          $changes = git status --porcelain antigravity.exe
+          if ($changes) {
+            git commit -m "Automated build: update antigravity.exe [skip ci]"
+            git push
+          } else {
+            Write-Host "No changes detected in antigravity.exe"
+          }

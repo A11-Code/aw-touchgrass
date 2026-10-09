@@ -1,11 +1,8 @@
 {
-  "app_limits": {
-    "chrome": 120,
-    "Code": 120,
-    "Discord": 120,
-    "All applications": 200
-  },
-  "max_session_minutes": 500,
+  "ollama_endpoint": "http://localhost:11434/api/generate",
+  "ollama_model": "gemma2:2b",
   "audio_file": "assets/quack.wav",
-  "strikes": 1
+  "max_session_minutes": 120,
+  "default_app_limit_minutes": 60,
+  "app_limits": {}
 }

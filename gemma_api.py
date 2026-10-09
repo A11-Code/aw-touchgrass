@@ -1,28 +1,21 @@
-"""Roast generation using local Ollama with a Hugging Face fallback."""
+"""Roast generation using local Ollama (Gemma 2)."""
 
 from __future__ import annotations
 
 import logging
-import os
 import re
 
 import requests
-from dotenv import load_dotenv
-from huggingface_hub import InferenceClient
 
 LOGGER = logging.getLogger(__name__)
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-# Ollama currently exposes Gemma 2 through its 2B local tag.
 OLLAMA_MODEL = "gemma2:2b"
-HUGGINGFACE_MODEL = "google/gemma-2-9b-it"
-REQUEST_TIMEOUT_SECONDS = 30
-
-load_dotenv()
+REQUEST_TIMEOUT_SECONDS = 10.0
 
 
 def _prompt(app_name: str, minutes: float) -> str:
-    """Build the shared instruction used by both inference providers."""
+    """Build the instruction sent to Ollama."""
     return (
         "Write exactly two short sentences as a toxic but playful, "
         "chronically-online Gen-Z roast. Use gender-neutral casual terms such as "
@@ -45,51 +38,36 @@ def _two_sentences(text: str) -> str:
     return f"{first} Now go touch real grass."
 
 
-def _generate_with_ollama(prompt: str) -> str:
-    """Generate a roast from the local Ollama HTTP API."""
-    response = requests.post(
-        OLLAMA_URL,
-        json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
-        timeout=REQUEST_TIMEOUT_SECONDS,
-    )
-    response.raise_for_status()
-    payload = response.json()
-    result = payload.get("response") if isinstance(payload, dict) else None
-    if not isinstance(result, str):
-        raise RuntimeError("Ollama returned no response text.")
-    return result
-
-
-def _generate_with_huggingface(prompt: str) -> str:
-    """Generate a roast from Hugging Face Serverless Inference."""
-    token = os.getenv("HF_TOKEN")
-    if not token:
-        raise RuntimeError(
-            "Ollama is unavailable and HF_TOKEN is not configured for fallback."
-        )
-
-    client = InferenceClient(token=token, model=HUGGINGFACE_MODEL)
-    response = client.chat_completion(
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=100,
-        temperature=0.9,
-    )
-    content = response.choices[0].message.content
-    if not isinstance(content, str):
-        raise RuntimeError("Hugging Face returned no response text.")
-    return content
-
-
-def generate_roast(app_name: str, minutes: float) -> str:
-    """Return a two-sentence roast, preferring local inference."""
+def generate_roast(
+    app_name: str,
+    minutes: float,
+    ollama_url: str | None = None,
+    ollama_model: str | None = None,
+) -> str:
+    """Return a two-sentence roast from local Ollama."""
     if not app_name.strip():
         raise ValueError("app_name must not be empty")
     if minutes < 0:
         raise ValueError("minutes must not be negative")
 
-    prompt = _prompt(app_name.strip(), minutes)
+    clean_app = app_name.removesuffix(".exe").strip() or "your screen"
+    prompt = _prompt(clean_app, minutes)
+    url = ollama_url or OLLAMA_URL
+    model = ollama_model or OLLAMA_MODEL
+
     try:
-        return _two_sentences(_generate_with_ollama(prompt))
-    except (requests.ConnectionError, requests.Timeout) as exc:
-        LOGGER.info("Ollama unavailable; using Hugging Face fallback: %s", exc)
-        return _two_sentences(_generate_with_huggingface(prompt))
+        response = requests.post(
+            url,
+            json={"model": model, "prompt": prompt, "stream": False},
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        result = payload.get("response") if isinstance(payload, dict) else None
+        if not isinstance(result, str):
+            raise RuntimeError("Ollama returned no response text.")
+        return _two_sentences(result)
+    except Exception as exc:
+        LOGGER.warning("Ollama unavailable (%s); using generic message.", exc)
+        return f"You've been on {clean_app} for {minutes:.0f} minutes. Go touch grass!"
+

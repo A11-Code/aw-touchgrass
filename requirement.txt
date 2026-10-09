@@ -1,7 +1,0 @@
-requests
-huggingface_hub
-pillow
-python-dotenv
-pystray
-pyinstaller
-pytest
